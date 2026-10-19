@@ -30,6 +30,7 @@ class KeyWave(val origin: State<Offset?>)
 // null = không có hiệu ứng (phím hiện ngay): lần dựng đầu tiên, bản ngang, công tắc tắt, tầng emoji...
 val LocalKeyWave = compositionLocalOf<KeyWave?> { null }
 
+private const val JELLY = 0.42f // độ méo ngang / dọc của hiệu ứng thạch
 private const val WAVE_PX_PER_MS = 3.4f // tốc độ lan: ~330ms từ góc này sang góc kia của bàn phím
 
 // Gắn vào mỗi phím. Không có làn sóng thì không làm gì (alpha 1, kích thước nguyên).
@@ -45,18 +46,22 @@ fun Modifier.keyWave(): Modifier {
         val o = origin ?: return@LaunchedEffect
         delay((hypot(c.x - o.x, c.y - o.y) / WAVE_PX_PER_MS).toLong())
         // phím bật lên bằng lò xo (hơi vọt), đồng thời rõ dần
-        progress.animateTo(1f, spring(dampingRatio = 0.58f, stiffness = 520f))
+        progress.animateTo(1f, spring(dampingRatio = 0.46f, stiffness = 430f)) // nảy lắc vài nhịp rồi lắng (độ "thạch")
     }
     return this
         .onGloballyPositioned { if (wave != null && center == null) center = it.boundsInRoot().center }
         .graphicsLayer {
             val p = progress.value
-            if (p >= 1f) return@graphicsLayer
+            if (p == 1f) return@graphicsLayer
             // không dùng lớp ngoài màn hình để bóng dưới chân phím không bị cắt
             compositingStrategy = CompositingStrategy.ModulateAlpha
             alpha = (p * 2.2f).coerceIn(0f, 1f)
             val s = 0.55f + 0.45f * p
-            scaleX = s; scaleY = s
+            // thạch: d > 0 (còn nhỏ) thì bè ngang + lùn xuống; d < 0 (vọt quá) thì thon ngang + cao lên; hai chiều luôn ngược pha nhau
+            val d = 1f - p
+            val jelly = JELLY * d
+            scaleX = s * (1f + jelly)
+            scaleY = s * (1f - jelly)
             translationY = (1f - p) * 14.dp.toPx()
             transformOrigin = TransformOrigin.Center
         }

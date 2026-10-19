@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Nhập bằng giọng nói: ghi âm để nhận diện ngay trên máy, không gửi đi đâu -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Chỉ để tải model giọng nói người dùng chọn (Wi-Fi tự tải, mạng di động thì hỏi trước); không gửi gì đi -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.R7TKeysX">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Studio nhãn dán: chọn ảnh, cắt, thêm chữ rồi lưu thành nhãn dán riêng -->
+        <activity
+            android:name=".StickerStudioActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Đưa nhãn dán (PNG) cho app khác khi gửi -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.stickers"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/sticker_paths" />
+        </provider>
+
+        <!-- Bàn phím hệ thống: hiện trong Cài đặt > Bàn phím sau khi cài -->
+        <service
+            android:name=".R7TInputMethodService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
+    </application>
+</manifest>

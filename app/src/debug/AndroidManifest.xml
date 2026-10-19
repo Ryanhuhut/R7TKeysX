@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Chỉ có ở bản debug: màn hình có ô nhập thật để thử bàn phím hệ thống -->
+        <activity android:name=".ImeTestActivity" android:exported="true" android:windowSoftInputMode="adjustResize" />
+        <!-- Chỉ có ở bản debug: đưa file wav vào model giọng nói, ghi kết quả + thời gian ra logcat (thẻ VoiceTest) -->
+        <activity android:name=".VoiceTestActivity" android:exported="true" />
+    </application>
+</manifest>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cho phép đưa file nhãn dán cho app khác (gửi vào ô chat) qua FileProvider -->
+<paths>
+    <files-path name="stickers" path="stickers/" />
+</paths>

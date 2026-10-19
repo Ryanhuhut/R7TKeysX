@@ -499,7 +499,4 @@ private fun dropLastGrapheme(text: String): String {
 }
 
 // Xóa nguyên một từ ở cuối + các dấu cách sát ngay sau từ đó (không lan sang từ trước)
-private fun dropLastWord(text: String): String {
-    val body = text.trimEnd()
-    return body.dropLastWhile { !it.isWhitespace() }
-}
+private fun dropLastWord(text: String): String = text.dropLast(com.r7tkeysx.app.engine.TextEdits.wordDeleteCount(text))

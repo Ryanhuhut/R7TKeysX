@@ -304,9 +304,7 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
             // giữ rất lâu: xóa nguyên một từ sát trái con trỏ + dấu cách đứng ngay sau từ đó
             commitComposing()
             val before = ic.getTextBeforeCursor(MAX_RESUME_WORD * 4, 0)?.toString().orEmpty()
-            val body = before.trimEnd()
-            val word = body.takeLastWhile { !it.isWhitespace() }
-            val n = (before.length - body.length) + word.length
+            val n = com.r7tkeysx.app.engine.TextEdits.wordDeleteCount(before)
             if (n > 0) ic.deleteSurroundingText(n, 0)
             updateAutoCaps()
             return

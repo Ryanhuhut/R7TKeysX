@@ -56,4 +56,6 @@ dependencies {
     // Nhận diện giọng nói offline (Apache-2.0): sherpa-onnx 1.13.8, tải sẵn từ GitHub vào app/libs
     implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     debugImplementation("androidx.compose.ui:ui-tooling")
+    // Chỉ dùng khi chạy kiểm thử trên máy tính (./gradlew testDebugUnitTest), KHÔNG đóng vào file cài
+    testImplementation("junit:junit:4.13.2")
 }

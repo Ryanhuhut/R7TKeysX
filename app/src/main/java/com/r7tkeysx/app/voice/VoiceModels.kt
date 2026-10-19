@@ -15,8 +15,9 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-// Một file của model: tên lưu trên máy, đường dẫn tải, dung lượng (byte) để vẽ thanh tiến độ
-class ModelFile(val name: String, val url: String, val bytes: Long)
+// Một file của model: tên lưu trên máy, đường dẫn tải, dung lượng (byte) để vẽ thanh tiến độ,
+// mã SHA-256 để kiểm tra file tải về không bị hỏng / bị tráo (lấy từ Hugging Face, đối chiếu với file thật)
+class ModelFile(val name: String, val url: String, val bytes: Long, val sha256: String)
 
 // Cách nạp model vào thư viện sherpa-onnx
 enum class VoiceKind { TRANSDUCER, WHISPER, QWEN }
@@ -47,10 +48,10 @@ enum class VoiceModel(
         "Vietnamese", "Fast and light. Used when your keyboard is in Vietnamese.", "voice-vi",
         hf("csukuangfj2/sherpa-onnx-zipformer-vi-30M-int8-2026-02-09").let { repo ->
             listOf(
-                ModelFile("encoder.int8.onnx", "$repo/encoder.int8.onnx", 27_699_063),
-                ModelFile("decoder.onnx", "$repo/decoder.onnx", 5_165_084),
-                ModelFile("joiner.int8.onnx", "$repo/joiner.int8.onnx", 1_033_417),
-                ModelFile("tokens.txt", "$repo/tokens.txt", 23_238),
+                ModelFile("encoder.int8.onnx", "$repo/encoder.int8.onnx", 27_699_063, "8ef5286dd427eb108055c2ddc1982aa31e544706072d5ea228729292dacade68"),
+                ModelFile("decoder.onnx", "$repo/decoder.onnx", 5_165_084, "cf2aa385b82c9d5d40cd29c3188af52d0249b3b78f0d4b7eb84ad502d50c7e7f"),
+                ModelFile("joiner.int8.onnx", "$repo/joiner.int8.onnx", 1_033_417, "7311d2e17b810ecea515d79c71cc4668af8759256a06fa01d27047772320c821"),
+                ModelFile("tokens.txt", "$repo/tokens.txt", 23_238, "ca8171f8bbd516c050b627582f2125c8f5f1f6ed967ab41b0fa9aae2cf61b492"),
             )
         },
         VoiceKind.TRANSDUCER, small = true, multilingual = false,
@@ -59,10 +60,10 @@ enum class VoiceModel(
         "English", "Adds punctuation and capital letters. Used when your keyboard is in English.", "voice-en",
         hf("csukuangfj/sherpa-onnx-zipformer-en-libriheavy-20230830-small-punct-case").let { repo ->
             listOf(
-                ModelFile("encoder.int8.onnx", "$repo/encoder-epoch-88-avg-41.int8.onnx", 68_780_141),
-                ModelFile("decoder.int8.onnx", "$repo/decoder-epoch-88-avg-41.int8.onnx", 670_318),
-                ModelFile("joiner.int8.onnx", "$repo/joiner-epoch-88-avg-41.int8.onnx", 391_431),
-                ModelFile("tokens.txt", "$repo/tokens.txt", 7_368),
+                ModelFile("encoder.int8.onnx", "$repo/encoder-epoch-88-avg-41.int8.onnx", 68_780_141, "2922ebd6b47954a02cc7e45e1ffb81a78d269b9949c86c41e7267f0efb995147"),
+                ModelFile("decoder.int8.onnx", "$repo/decoder-epoch-88-avg-41.int8.onnx", 670_318, "5de9e3531f055a0073dba543d9925a0a1228678ba306fff83b6c70de100cc47c"),
+                ModelFile("joiner.int8.onnx", "$repo/joiner-epoch-88-avg-41.int8.onnx", 391_431, "4aa9d1dd5019e7444cfb1aa5c56889f4de3e657156e113980ad40c6d73ddee77"),
+                ModelFile("tokens.txt", "$repo/tokens.txt", 7_368, "8eb972ab97543df33e055e10934fc48fd827116760ea11c7ed29214e0dec4e3b"),
             )
         },
         VoiceKind.TRANSDUCER, small = true, multilingual = false,
@@ -71,9 +72,9 @@ enum class VoiceModel(
         "Whisper Small", "Understands many languages. A good balance of speed and accuracy.", "voice-whisper-small",
         hf("csukuangfj/sherpa-onnx-whisper-small").let { repo ->
             listOf(
-                ModelFile("small-encoder.int8.onnx", "$repo/small-encoder.int8.onnx", 112_442_483),
-                ModelFile("small-decoder.int8.onnx", "$repo/small-decoder.int8.onnx", 262_226_114),
-                ModelFile("small-tokens.txt", "$repo/small-tokens.txt", 816_730),
+                ModelFile("small-encoder.int8.onnx", "$repo/small-encoder.int8.onnx", 112_442_483, "4cbe7b22fa9026b843b60a68640c747de05bafb1a11b57edc0e66c232d9f33a9"),
+                ModelFile("small-decoder.int8.onnx", "$repo/small-decoder.int8.onnx", 262_226_114, "acad50b5c782696e91b55914cc5ab4f756f1532f76e22aa6fc615f39fb69a8ee"),
+                ModelFile("small-tokens.txt", "$repo/small-tokens.txt", 816_730, "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"),
             )
         },
         VoiceKind.WHISPER, small = false, multilingual = true,
@@ -82,9 +83,9 @@ enum class VoiceModel(
         "Whisper Medium", "More accurate than Small, but slower and needs more memory.", "voice-whisper-medium",
         hf("csukuangfj/sherpa-onnx-whisper-medium").let { repo ->
             listOf(
-                ModelFile("medium-encoder.int8.onnx", "$repo/medium-encoder.int8.onnx", 374_196_283),
-                ModelFile("medium-decoder.int8.onnx", "$repo/medium-decoder.int8.onnx", 571_059_257),
-                ModelFile("medium-tokens.txt", "$repo/medium-tokens.txt", 816_730),
+                ModelFile("medium-encoder.int8.onnx", "$repo/medium-encoder.int8.onnx", 374_196_283, "1c54582b4d829de0089f6cb63bbbdb3bf7555398bacaf855fbecf1a84dfd193e"),
+                ModelFile("medium-decoder.int8.onnx", "$repo/medium-decoder.int8.onnx", 571_059_257, "595d00a338a365a7bfa0ca7f296cabc639583bef770ab6130df90f49a6412747"),
+                ModelFile("medium-tokens.txt", "$repo/medium-tokens.txt", 816_730, "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"),
             )
         },
         VoiceKind.WHISPER, small = false, multilingual = true,
@@ -94,12 +95,12 @@ enum class VoiceModel(
         "Qwen", "Many languages with punctuation. The most capable here, and the heaviest.", "voice-multi",
         hf("csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25").let { repo ->
             listOf(
-                ModelFile("encoder.int8.onnx", "$repo/encoder.int8.onnx", 182_491_662),
-                ModelFile("conv_frontend.onnx", "$repo/conv_frontend.onnx", 44_148_281),
-                ModelFile("decoder.int8.onnx", "$repo/decoder.int8.onnx", 755_914_231),
-                ModelFile("tokenizer/vocab.json", "$repo/tokenizer/vocab.json", 2_776_833),
-                ModelFile("tokenizer/merges.txt", "$repo/tokenizer/merges.txt", 1_671_853),
-                ModelFile("tokenizer/tokenizer_config.json", "$repo/tokenizer/tokenizer_config.json", 12_487),
+                ModelFile("encoder.int8.onnx", "$repo/encoder.int8.onnx", 182_491_662, "60748d3e6744a57c9c91e1b17424a6c2990567e8adceb0783940c03ed98fa9d9"),
+                ModelFile("conv_frontend.onnx", "$repo/conv_frontend.onnx", 44_148_281, "d22dc4423e0940e49884e903d2ea2f7e5567c14fc1aed97e4e26d6b8f208ef9e"),
+                ModelFile("decoder.int8.onnx", "$repo/decoder.int8.onnx", 755_914_231, "4f6885be5959ae26af3089d38ee7972c5fafbeeb1cf8d5e76eab6d8b61ca5771"),
+                ModelFile("tokenizer/vocab.json", "$repo/tokenizer/vocab.json", 2_776_833, "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"),
+                ModelFile("tokenizer/merges.txt", "$repo/tokenizer/merges.txt", 1_671_853, "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"),
+                ModelFile("tokenizer/tokenizer_config.json", "$repo/tokenizer/tokenizer_config.json", 12_487, "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"),
             )
         },
         VoiceKind.QWEN, small = false, multilingual = true,
@@ -139,11 +140,17 @@ class VoiceModelManager private constructor(private val appContext: Context) {
 
     fun dir(model: VoiceModel) = File(appContext.filesDir, model.folder)
 
-    fun isInstalled(model: VoiceModel): Boolean =
+    // đọc đĩa MỘT lần khi tạo (vài chục lần kiểm tra file, rất nhanh); sau đó giao diện chỉ đọc bảng `states`, không đụng đĩa mỗi lần vẽ
+    init {
+        VoiceModel.entries.forEach { states[it] = if (onDisk(it)) ModelState.Installed else ModelState.NotInstalled }
+    }
+
+    private fun onDisk(model: VoiceModel): Boolean =
         File(dir(model), OK_MARKER).isFile && model.files.all { File(dir(model), it.name).isFile }
 
-    fun state(model: VoiceModel): ModelState =
-        states[model] ?: if (isInstalled(model)) ModelState.Installed else ModelState.NotInstalled
+    fun isInstalled(model: VoiceModel): Boolean = state(model) == ModelState.Installed
+
+    fun state(model: VoiceModel): ModelState = states[model] ?: ModelState.NotInstalled
 
     fun networkKind(): NetworkKind {
         val cm = appContext.getSystemService(ConnectivityManager::class.java) ?: return NetworkKind.NONE
@@ -179,7 +186,7 @@ class VoiceModelManager private constructor(private val appContext: Context) {
     // Gọi khi mở app: có model đang chờ mà đã có Wi-Fi thì tải luôn
     fun resumePending() {
         val model = pending ?: return
-        if (isInstalled(model)) { pending = null; return }
+        if (onDisk(model)) { pending = null; return }
         if (networkKind() == NetworkKind.WIFI) download(model) else watchForWifi()
     }
 
@@ -198,7 +205,7 @@ class VoiceModelManager private constructor(private val appContext: Context) {
 
     // Tải các file còn thiếu (tải tiếp được file dở), ghi file ".ok" khi đủ. Xong thì dọn model đa ngôn ngữ cũ.
     fun download(model: VoiceModel) {
-        if (jobs[model]?.isActive == true || isInstalled(model)) return
+        if (jobs[model]?.isActive == true || onDisk(model)) return
         pending = null
         states[model] = ModelState.Downloading(0f)
         jobs[model] = scope.launch {
@@ -235,10 +242,10 @@ class VoiceModelManager private constructor(private val appContext: Context) {
         val job = jobs[model]
         if (job?.isActive == true) {
             // chỉ dọn nếu giữa chừng người dùng chưa bấm tải lại (tải lại tạo job mới, dọn nhầm sẽ xóa luôn file đang tải của job mới)
-            job.invokeOnCompletion { if (jobs[model] === job && !isInstalled(model)) dir(model).deleteRecursively() }
+            job.invokeOnCompletion { if (jobs[model] === job && !onDisk(model)) dir(model).deleteRecursively() }
             job.cancel()
         }
-        states.remove(model)
+        states[model] = if (onDisk(model)) ModelState.Installed else ModelState.NotInstalled
     }
 
     fun delete(model: VoiceModel) {
@@ -274,11 +281,22 @@ class VoiceModelManager private constructor(private val appContext: Context) {
                 }
             }
             if (part.length() != file.bytes) { part.delete(); error("Incomplete download, try again") }
+            if (sha256Of(part) != file.sha256) { part.delete(); error("Downloaded file is damaged, try again") }
             target.delete()
             if (!part.renameTo(target)) error("Could not save the file")
         } finally {
             conn.disconnect()
         }
+    }
+
+    // Mã SHA-256 của file (đọc từng khúc 1 MB, không nạp cả file vào bộ nhớ)
+    private fun sha256Of(f: File): String {
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        f.inputStream().use { input ->
+            val buf = ByteArray(1 shl 20)
+            while (true) { val n = input.read(buf); if (n < 0) break; md.update(buf, 0, n) }
+        }
+        return md.digest().joinToString("") { "%02x".format(it) }
     }
 
     companion object {

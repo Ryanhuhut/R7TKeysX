@@ -62,6 +62,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.draw.blur
@@ -287,11 +288,32 @@ fun KeyboardView(
                     val gapV = (if (landscape) IosDimens.LandscapeKeyGapV else IosDimens.KeyGapV) * (settings.verticalSpacing.value / 100f)
                     val keyRegistry = remember { KeyRegistry() }
                     CompositionLocalProvider(LocalKeyGap provides androidx.compose.ui.unit.DpSize(gap, gapV), LocalKeyRegistry provides keyRegistry) {
-                    Box(Modifier.gapTapCatcher(keyRegistry, maxOf(gap, gapV, edgeGap))) {
+                    // gốc làn sóng = góc dưới trái vùng phím (chỗ phím 123 / ABC); `ready` = đã qua lần dựng đầu (lần đầu không chạy sóng)
+                    val waveOrigin = remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
+                    var waveReady by remember { mutableStateOf(false) }
+                    androidx.compose.runtime.LaunchedEffect(Unit) { waveReady = true }
+                    val portrait = !isLandscapeLayout()
+                    val waveFor: (KeyboardLayer) -> Boolean = { target ->
+                        settings.keyWave.value && portrait && waveReady && target != KeyboardLayer.EMOJI && target != KeyboardLayer.CLIPBOARD
+                    }
+                    val keyWave = remember(waveOrigin) { KeyWave(waveOrigin) }
+                    Box(Modifier
+                        .onGloballyPositioned { waveOrigin.value = it.boundsInRoot().bottomLeft }
+                        .gapTapCatcher(keyRegistry, maxOf(gap, gapV, edgeGap))) {
                     // đổi tầng chữ <-> số <-> ký hiệu <-> emoji: mờ chéo nhanh thay vì đổi cái rụp
                     AnimatedContent(
                         targetState = layer,
+                        modifier = Modifier.layout { measurable, constraints ->
+                            val room = KeyShadowRoom.roundToPx()
+                            val placeable = measurable.measure(constraints)
+                            layout(placeable.width, (placeable.height - room).coerceAtLeast(0)) { placeable.place(0, 0) }
+                        },
                         transitionSpec = {
+                            if (waveFor(targetState)) {
+                                // có làn sóng: từng phím tự hiện ra, nên cả bảng mới không cần mờ vào; bảng cũ tan nhanh
+                                androidx.compose.animation.EnterTransition.None togetherWith fadeOut(tween(100)) using
+                                    androidx.compose.animation.SizeTransform(clip = false)
+                            } else
                             // bảng emoji / chữ / số đổi chỗ: bảng mới phồng từ 92% + mờ hiện (góc dưới trái, chỗ quả địa cầu), bảng cũ mờ nhanh
                             (fadeIn(tween(230, delayMillis = 40)) + androidx.compose.animation.scaleIn(
                                 androidx.compose.animation.core.spring(1f, 460f), initialScale = 0.92f, // 1f = không nảy quá, khỏi tràn khung
@@ -300,6 +322,10 @@ fun KeyboardView(
                         },
                         label = "layer",
                     ) { shownLayer ->
+                        // chừa 4dp ở đáy khối phím: lớp mờ ngoài màn hình của AnimatedContent cắt đúng mép khối, mà bóng 1dp dưới chân hàng phím cuối
+                        // nằm NGOÀI mép đó nên bị cắt mất trong lúc chuyển (xem Modifier.layout ở trên: phần chừa này không chiếm chỗ)
+                        androidx.compose.runtime.CompositionLocalProvider(LocalKeyWave provides (if (waveFor(shownLayer)) keyWave else null)) {
+                        Box(Modifier.padding(bottom = KeyShadowRoom)) {
                         if (shownLayer == KeyboardLayer.EMOJI) {
                             // bảng emoji cao bằng đúng 4 hàng phím để bàn phím không đổi chiều cao khi chuyển
                             EmojiPanel(
@@ -335,6 +361,8 @@ fun KeyboardView(
                                     onSpace = onSpace, onReturn = onReturn,
                                 )
                             }
+                        }
+                                            }
                         }
                     }
                     }
@@ -382,6 +410,8 @@ fun KeyboardView(
 private fun isLandscapeLayoutFor(settings: KeyboardSettings): Boolean =
     LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
         settings.landscapeMode.value == com.r7tkeysx.app.data.LandscapeMode.DYNAMIC
+
+private val KeyShadowRoom = 4.dp
 
 // Các mục thêm ở cuối popup giữ quả địa cầu: Emoji, Clipboard
 private val GlobeExtras = listOf("Emoji", "Clipboard")
@@ -670,6 +700,7 @@ private fun SpaceKey(languageLabel: String, palette: KeyboardPalette, onTap: () 
     androidx.compose.runtime.DisposableEffect(registry) { onDispose { registry?.entries?.remove(token) } }
     Box(
         modifier
+            .keyWave()
             .onGloballyPositioned { c ->
                 registry?.entries?.set(token, KeyRegistry.Entry(c.boundsInRoot(), { pressed = it }, { view.keyTick(settings); currentOnTap() }))
             }

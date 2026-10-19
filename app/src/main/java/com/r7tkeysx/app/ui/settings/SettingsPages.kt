@@ -198,6 +198,8 @@ private fun KeyboardPage(settings: KeyboardSettings) {
         Divider()
         ToggleRow("Return to letters after space", settings.returnToLetters.value, settings.returnToLetters::set)
         Divider()
+        ToggleRow("Wave animation", settings.keyWave.value, settings.keyWave::set, subtitle = "Keys ripple in like a wave when you switch between letters, numbers and symbols (portrait only).")
+        Divider()
         DropdownRow(
             "Caps Lock activation", listOf(true, false), settings.capsLockDoubleTap.value,
             { if (it) "Double-tap Shift" else "Off" }, settings.capsLockDoubleTap::set,

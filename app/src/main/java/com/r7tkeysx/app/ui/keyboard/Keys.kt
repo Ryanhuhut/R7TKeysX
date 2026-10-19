@@ -122,6 +122,7 @@ fun KeyBase(
 
     Box(
         modifier
+            .keyWave()
             .onGloballyPositioned { c ->
                 registry?.entries?.set(token, KeyRegistry.Entry(c.boundsInRoot(), { pressed = it }, { view.keyTick(settings, currentSound); currentOnTap() }))
             }

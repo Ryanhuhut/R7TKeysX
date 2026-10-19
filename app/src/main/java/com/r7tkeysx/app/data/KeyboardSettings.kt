@@ -181,6 +181,7 @@ class KeyboardSettings private constructor(private val prefs: SharedPreferences)
 
     // Keyboard > Key behavior
     val mergeHintPopups = bool("merge_hint_popups", false)
+    val keyWave = bool("key_wave", true) // hiệu ứng làn sóng khi đổi tầng chữ / số / ký hiệu (chỉ bàn phím dọc)
     val returnToLetters = bool("return_to_letters", true) // bấm cách ở tầng số / ký hiệu thì về tầng chữ
     val utilityKeyInRow = bool("utility_key_in_row", false)
 

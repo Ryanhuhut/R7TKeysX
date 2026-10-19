@@ -120,7 +120,7 @@ class VoiceInput private constructor(private val appContext: Context) {
         state = VoiceState.LISTENING
         val active = activeModel // model theo lúc bắt đầu nói (đổi ngôn ngữ bàn phím giữa chừng không làm lệch)
         session = scope.launch {
-            val model = async { loadRecognizer() } // nạp model song song với ghi âm, người dùng nói được ngay
+            val model = async { loadRecognizer(active) } // nạp model song song với ghi âm, người dùng nói được ngay
             val segments = Channel<FloatArray>(Channel.UNLIMITED)
             // "Người viết chữ": lấy từng đoạn âm thanh ra nhận diện, theo đúng thứ tự
             var wrote = false
@@ -295,11 +295,10 @@ class VoiceInput private constructor(private val appContext: Context) {
 
     // Chỉ để thử (bản debug): nhận diện thẳng một đoạn âm thanh 16 kHz, không qua micro
     suspend fun transcribeForTest(samples: FloatArray): String? =
-        withContext(Dispatchers.Default) { loadRecognizer()?.let { decode(it, samples) } }
+        withContext(Dispatchers.Default) { loadRecognizer(activeModel)?.let { decode(it, samples) } }
 
     // Nạp model đang dùng (vài giây); đổi model thì bỏ bản cũ nạp bản mới. Trả về null nếu lỗi.
-    private suspend fun loadRecognizer(): OfflineRecognizer? = loadLock.withLock {
-        val wanted = activeModel
+    private suspend fun loadRecognizer(wanted: VoiceModel): OfflineRecognizer? = loadLock.withLock {
         if (recognizer != null && recognizerModel != wanted) { recognizer?.release(); recognizer = null }
         recognizer ?: runCatching {
             val dir = models.dir(wanted).absolutePath

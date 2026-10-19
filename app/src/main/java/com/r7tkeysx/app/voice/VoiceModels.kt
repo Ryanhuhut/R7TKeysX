@@ -234,7 +234,8 @@ class VoiceModelManager private constructor(private val appContext: Context) {
     fun cancel(model: VoiceModel) {
         val job = jobs[model]
         if (job?.isActive == true) {
-            job.invokeOnCompletion { if (!isInstalled(model)) dir(model).deleteRecursively() }
+            // chỉ dọn nếu giữa chừng người dùng chưa bấm tải lại (tải lại tạo job mới, dọn nhầm sẽ xóa luôn file đang tải của job mới)
+            job.invokeOnCompletion { if (jobs[model] === job && !isInstalled(model)) dir(model).deleteRecursively() }
             job.cancel()
         }
         states.remove(model)

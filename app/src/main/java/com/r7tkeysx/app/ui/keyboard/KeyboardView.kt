@@ -104,6 +104,9 @@ val LocalCursorControl = compositionLocalOf<CursorControl?> { null }
 // Nút return là dấu tích (ô nhập có nút Xong / Gửi / Tìm...) hay mũi tên xuống dòng
 val LocalReturnIsAction = compositionLocalOf { false }
 
+// Nút return mờ đi và không bấm được (như iPhone: ô Tìm / Gửi / Đi tới đang trống thì chưa có gì để làm)
+val LocalReturnDisabled = compositionLocalOf { false }
+
 // Nửa dưới: bàn phím. Không giữ state gì, mọi thứ do cha truyền xuống; tùy chỉnh đọc từ `settings`.
 @Composable
 fun KeyboardView(
@@ -132,7 +135,8 @@ fun KeyboardView(
     appearKey: Int = 0, // bàn phím nổi: tăng số này mỗi lần bàn phím hiện ra để chạy hiệu ứng trồi lên
     // ép kiểu hiển thị (app thử có 2 chỗ đặt bàn phím: gắn đáy / nổi); null = theo cài đặt
     floatingOverride: Boolean? = null,
-    returnIsAction: Boolean = false, // true: nút return hiện dấu tích thay vì mũi tên xuống dòng
+    returnIsAction: Boolean = false, // true: nút return xanh + dấu tích; false: nút xám + mũi tên xuống dòng (như iPhone)
+    returnDisabled: Boolean = false, // ô có hành động nhưng đang trống: nút return mờ, bấm không có tác dụng
     cursorControl: CursorControl? = null, // có thì giữ phím cách để rê con trỏ
     onGlide: ((List<String>) -> Unit)? = null, // vuốt để gõ (chỉ tiếng Anh): nhận các từ đoán được, từ tốt nhất đứng đầu
     onSticker: (java.io.File) -> Unit = {}, // chạm một nhãn dán trong thư viện
@@ -181,6 +185,7 @@ fun KeyboardView(
         LocalOnChar provides onChar,
         LocalKeyCenters provides keyCenters,
         LocalReturnIsAction provides returnIsAction,
+        LocalReturnDisabled provides returnDisabled,
         // chữ trên phím co theo bề ngang bàn phím (nổi, hoặc thu hẹp để gõ một tay)
         LocalKeyFontScale provides 0.35f + 0.65f * (if (floating) settings.floatWidth.value else settings.dockWidth.value) / 100f,
     ) {
@@ -570,18 +575,28 @@ private fun BottomKeyRow(
                 if (punct) LetterKey(".", { onChar(".") }, Modifier.width(keyW))
             }
         }
+        // Như iPhone: chỉ xuống dòng -> nút XÁM như phím chức năng; ô có hành động (Xong / Gửi / Tìm / Đi) -> nút XANH + dấu tích;
+        // ô Tìm / Gửi / Đi tới đang trống -> nút mờ đi, bấm không có tác dụng. Đổi màu có chuyển mượt.
+        val action = LocalReturnIsAction.current || kind == InputKind.EMAIL || kind == InputKind.URI
+        val disabled = LocalReturnDisabled.current && action
+        val currentReturn by rememberUpdatedState(onReturn)
+        val currentDisabled by rememberUpdatedState(disabled)
+        val returnColor by androidx.compose.animation.animateColorAsState(if (action) palette.returnKey else palette.functionKey, tween(180), label = "returnColor")
+        val returnAlpha by animateFloatAsState(if (disabled) 0.45f else 1f, tween(180), label = "returnAlpha")
         FunctionKey(
-            onTap = onReturn,
+            onTap = { if (!currentDisabled) currentReturn() },
             sound = KeySound.RETURN,
-            modifier = Modifier.width(keyW * IosDimens.RETURN_KEY_FACTOR),
-            color = palette.returnKey,
-            pressedColor = palette.returnKeyPressed,
+            modifier = Modifier.width(keyW * IosDimens.RETURN_KEY_FACTOR).graphicsLayer {
+                alpha = returnAlpha
+                compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha // mờ mà không cắt bóng dưới chân phím
+            },
+            color = returnColor,
+            pressedColor = if (disabled) returnColor else if (action) palette.returnKeyPressed else palette.functionKeyPressed,
         ) {
-            // ô có nút hành động (Xong / Gửi / Tìm / Đi) -> dấu tích; ô nhiều dòng -> mũi tên xuống dòng ↵
-            if (LocalReturnIsAction.current || kind == InputKind.EMAIL || kind == InputKind.URI) {
+            if (action) {
                 CheckIcon(Color.White, size = 26.dp * LocalKeyFontScale.current)
             } else {
-                ReturnIcon(Color.White, size = 28.dp * LocalKeyFontScale.current)
+                ReturnIcon(palette.keyText, size = 28.dp * LocalKeyFontScale.current)
             }
         }
     }

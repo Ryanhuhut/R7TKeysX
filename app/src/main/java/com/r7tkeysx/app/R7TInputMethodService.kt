@@ -65,7 +65,9 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
     private var glideWord by mutableStateOf<String?>(null) // từ vừa vuốt ra (để đổi sang từ đoán khác)
     private var glideAlts by mutableStateOf<List<String>>(emptyList())
     private var currentEmoji by mutableStateOf<String?>(null) // emoji hợp với mấy chữ vừa gõ (ô gợi ý bên phải)
-    private var returnIsAction by mutableStateOf(false) // ô có nút Xong / Gửi / Tìm: nút return hiện dấu tích
+    private var returnIsAction by mutableStateOf(false) // ô có nút Xong / Gửi / Tìm: nút return xanh + dấu tích
+    private var returnNeedsText = false // ô Tìm / Gửi / Đi tới: chưa gõ gì thì nút return mờ đi (như iPhone)
+    private var returnDisabled by mutableStateOf(false)
     private var showCount by mutableIntStateOf(0) // tăng mỗi lần bàn phím hiện ra (để bàn phím nổi chạy hiệu ứng trồi lên) // ô mật khẩu / email / url: gõ thẳng, không Telex
 
     override fun onCreate() {
@@ -123,6 +125,7 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
                             "",
                         ),
                     returnIsAction = returnIsAction,
+                    returnDisabled = returnDisabled,
                     cursorControl = cursorControl,
                     onGlide = ::onGlide,
                     onSticker = ::onSticker,
@@ -168,6 +171,9 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
         val action = info.imeOptions and EditorInfo.IME_MASK_ACTION
         returnIsAction = info.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION == 0 &&
             action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED
+        // Xong / Tiếp theo vẫn bấm được khi ô trống (để đóng bàn phím / sang ô khác); chỉ Tìm / Gửi / Đi tới mới cần có chữ
+        returnNeedsText = returnIsAction && action in setOf(EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_SEND, EditorInfo.IME_ACTION_GO)
+        updateReturnDisabled()
         refreshCurrentWord()
         // ô nhập số / điện thoại thì mở thẳng tầng số
         val startLayer = if (cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE) KeyboardLayer.NUMBERS else KeyboardLayer.LETTERS
@@ -193,6 +199,15 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
             currentInputConnection?.finishComposingText()
         }
         refreshCurrentWord()
+        updateReturnDisabled()
+    }
+
+    // ô trống = không có chữ trước lẫn sau con trỏ và không có từ đang soạn
+    private fun updateReturnDisabled() {
+        if (!returnNeedsText) { returnDisabled = false; return }
+        val ic = currentInputConnection ?: return
+        returnDisabled = composing.isEmpty() &&
+            ic.getTextBeforeCursor(1, 0).isNullOrEmpty() && ic.getTextAfterCursor(1, 0).isNullOrEmpty()
     }
 
     // Bàn phím nổi: cửa sổ bàn phím phủ cả màn nhưng app bên dưới vẫn dùng trọn màn hình

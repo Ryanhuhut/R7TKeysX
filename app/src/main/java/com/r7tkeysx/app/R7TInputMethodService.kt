@@ -178,7 +178,13 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
         updateReturnDisabled()
         refreshCurrentWord()
         // ô nhập số / điện thoại thì mở thẳng tầng số
-        val startLayer = if (cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE) KeyboardLayer.NUMBERS else KeyboardLayer.LETTERS
+        // ô mật khẩu dạng chữ cũng mở tầng số: app ngân hàng hay khai ô nhập mã PIN / xác nhận giao dịch kiểu này (bấm ABC để về chữ)
+        val isPasswordField = cls == InputType.TYPE_CLASS_TEXT && variation in setOf(
+            InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+        )
+        val startLayer = if (cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE || isPasswordField) KeyboardLayer.NUMBERS else KeyboardLayer.LETTERS
         // "Hide history on next text field" tắt: sang ô nhập khác vẫn giữ bảng Clipboard đang mở
         if (!(controller.layer == KeyboardLayer.CLIPBOARD && !settings.clipHideOnNextField.value)) controller.showLayer(startLayer)
         updateAutoCaps()

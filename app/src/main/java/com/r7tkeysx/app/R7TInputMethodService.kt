@@ -61,6 +61,7 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
     // Bàn phím nổi: khay nằm ở đâu trong cửa sổ bàn phím (null = đang gắn đáy)
     private var floatingBounds: android.graphics.Rect? = null
     private var plainMode = false
+    private var lastEditMs = 0L
     private var currentWord by mutableStateOf("") // từ đang gõ dở ngay trước con trỏ (để gợi ý chữ)
     private var glideWord by mutableStateOf<String?>(null) // từ vừa vuốt ra (để đổi sang từ đoán khác)
     private var glideAlts by mutableStateOf<List<String>>(emptyList())
@@ -155,13 +156,14 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
         composing = ""
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
         val variation = info.inputType and InputType.TYPE_MASK_VARIATION
+        // Thanh địa chỉ của trình duyệt khai báo là ô "URL" nhưng người ta gõ tìm kiếm tiếng Việt ở đó => vẫn Telex
+        val isBrowser = BROWSER_HINTS.any { info.packageName.orEmpty().contains(it, ignoreCase = true) }
         plainMode = cls != InputType.TYPE_CLASS_TEXT || variation in setOf(
             InputType.TYPE_TEXT_VARIATION_PASSWORD,
             InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
             InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
             InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
-            InputType.TYPE_TEXT_VARIATION_URI,
-        )
+        ) || (variation == InputType.TYPE_TEXT_VARIATION_URI && !isBrowser)
         // gợi ý dán = mục chép gần nhất, còn trong thời hạn "Limit clipboard suggestions to"
         com.r7tkeysx.app.data.ClipboardStore.captureSystemClip(this, settings)
         clipText = if (settings.clipboardSuggestion.value) {
@@ -194,7 +196,9 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         // người dùng chạm sang chỗ khác trong ô nhập => bỏ từ đang soạn (đã nằm sẵn trong ô)
-        if (composing.isNotEmpty() && (newSelStart != candidatesEnd || newSelEnd != candidatesEnd)) {
+        // báo cáo vị trí con trỏ của ô nhập hay đến trễ sau lần sửa của mình: bỏ qua để khỏi hủy nhầm từ đang soạn
+        val stale = System.currentTimeMillis() - lastEditMs < STALE_UPDATE_MS
+        if (!stale && composing.isNotEmpty() && (newSelStart != candidatesEnd || newSelEnd != candidatesEnd)) {
             composing = ""
             currentInputConnection?.finishComposingText()
         }
@@ -234,6 +238,7 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
     // ---- xử lý phím ----
 
     private fun onChar(text: String) {
+        lastEditMs = System.currentTimeMillis()
         lastCorrection = null
         glideWord = null
         val ic = currentInputConnection ?: return
@@ -325,6 +330,7 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
             return
         }
         if (composing.isNotEmpty()) {
+            lastEditMs = System.currentTimeMillis()
             composing = composing.dropLast(1)
             if (composing.isEmpty()) ic.commitText("", 1) else ic.setComposingText(composing, 1)
             return
@@ -336,9 +342,12 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
         }
         // Xóa 1 ký tự, rồi "mở lại" từ nằm sát trước con trỏ để gõ tiếp dấu được
         // (co + cách, xóa cách, bấm s => "có"). Gói trong một lượt sửa để ô nhập chỉ báo cập nhật một lần.
+        // Chỉ mở lại từ khi vừa xóa DẤU CÁCH; xóa dấu chấm / chữ thì xóa thẳng (mở lại sau mỗi lần xóa làm lệch ô nhập)
+        lastEditMs = System.currentTimeMillis()
+        val deletedSpace = ic.getTextBeforeCursor(1, 0)?.toString() == " "
         ic.beginBatchEdit()
         ic.deleteSurroundingText(1, 0)
-        val before = ic.getTextBeforeCursor(MAX_RESUME_WORD, 0)?.toString().orEmpty()
+        val before = if (deletedSpace) ic.getTextBeforeCursor(MAX_RESUME_WORD, 0)?.toString().orEmpty() else ""
         val word = before.takeLastWhile { it.isLetter() }
         if (word.isNotEmpty()) {
             ic.deleteSurroundingText(word.length, 0)
@@ -554,6 +563,8 @@ class R7TInputMethodService : InputMethodService(), LifecycleOwner, SavedStateRe
 
     private companion object {
         const val MAX_RESUME_WORD = 24 // từ dài hơn thế thì không mở lại
+        val BROWSER_HINTS = listOf("chrome", "browser", "firefox", "mozilla", "brave", "opera", "edge", "duckduckgo", "samsung.android.app.sbrowser")
+        const val STALE_UPDATE_MS = 250L
         const val MAX_CLIP = 500 // đoạn sao chép dài hơn thế thì không gợi ý
         const val TRACK_STEP_X_DP = 9f // rê ngang chừng này (dp) = con trỏ dời 1 chữ
         const val TRACK_STEP_Y_DP = 26f // rê dọc chừng này = lên / xuống 1 dòng

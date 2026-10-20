@@ -54,4 +54,13 @@ class TelexEngineTest {
     @Test fun chuHoaGiuNguyen() {
         assertEquals(nfc("Việt"), typed("Vieetj"))
     }
+
+    @Test fun wLeVaBamDup() {
+        assertEquals(nfc("ư"), typed("w"))
+        assertEquals("w", typed("ww"))
+        assertEquals("www", typed("wwww")) // w, ư, w, rồi w thường
+        assertEquals("W", typed("WW"))
+        assertEquals(nfc("tư"), typed("tw"))
+        assertEquals(nfc("ưu"), typed("wu"))
+    }
 }

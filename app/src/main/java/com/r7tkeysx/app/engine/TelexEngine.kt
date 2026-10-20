@@ -100,6 +100,8 @@ object TelexEngine {
                 return true
             }
         }
+        // đã hoàn tác "w" lẻ thành chữ w rồi: w tiếp theo là chữ w thường (www -> www), không đổi lại thành ư
+        if (w.lastOrNull()?.lower == 'w') return false
         val target = w.indexOfLast { it.lower == 'a' || it.lower == 'o' || it.lower == 'u' }
         if (target < 0) {
             if (w.any { it.isVowel }) return false
@@ -108,7 +110,8 @@ object TelexEngine {
         }
         val mark = if (w[target].lower == 'a') BREVE else HORN
         if (w[target].shape == mark) {
-            w[target].shape = null; w.add(Letter(key))
+            // "ư" đứng một mình là do bấm w lẻ: bấm w nữa trả về đúng chữ w (không phải "uw")
+            if (w.size == 1 && w[0].lower == 'u') w[0] = Letter(key) else { w[target].shape = null; w.add(Letter(key)) }
         } else {
             w[target].shape = mark
         }
